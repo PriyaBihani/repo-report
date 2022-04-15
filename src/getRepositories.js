@@ -1,26 +1,35 @@
-'use strict';
+"use strict";
 
-const { getRepositories: getRepos } = require('./utils');
+const { getRepositories: getRepos } = require("./utils");
 
 function hasFlag(flag, flags, defaultValue = false) {
-	return !!(flags?.length > 0 ? flags?.includes(flag) : defaultValue);
+  return !!(flags?.length > 0 ? flags?.includes(flag) : defaultValue);
 }
 
 function generateQuery(endCursor, { f }) {
-	const showForks = hasFlag('forks', f);
-	const showSources = hasFlag('sources', f, true);
-	const showPrivate = hasFlag('private', f);
-	const showPublic = hasFlag('public', f, true);
+  const showForks = hasFlag("forks", f);
+  const showSources = hasFlag("sources", f, true);
+  const showPrivate = hasFlag("private", f);
+  const showPublic = hasFlag("public", f, true);
 
-	return (
-		`query {
+  return `query {
   viewer {
 	repositories(
 	  first: 100
 	  affiliations: [OWNER, ORGANIZATION_MEMBER, COLLABORATOR]
-	  ${endCursor ? `after: "${endCursor}"` : ''}
-	  ${showForks === showSources ? '' : showForks ? 'isFork: true' : 'isFork: false'}
-	  ${showPrivate === showPublic ? '' : showPublic ? 'privacy: PUBLIC' : 'privacy: PRIVATE'}
+	  ${endCursor ? `after: "${endCursor}"` : ""}
+	  ${showForks === showSources
+      ? ""
+      : showForks
+        ? "isFork: true"
+        : "isFork: false"
+    }
+	  ${showPrivate === showPublic
+      ? ""
+      : showPublic
+        ? "privacy: PUBLIC"
+        : "privacy: PRIVATE"
+    }
 	) {
 	  totalCount
 	  pageInfo {
@@ -41,6 +50,11 @@ function generateQuery(endCursor, { f }) {
 				requiresCodeOwnerReviews
 				requiresConversationResolution
 				restrictsPushes
+				requiredStatusChecks {
+					app {
+						id
+					}
+                }
 			}
 		}
 		deleteBranchOnMerge
@@ -78,16 +92,17 @@ function generateQuery(endCursor, { f }) {
 	remaining
   }
 }
-`);
+`;
 }
 
 module.exports = async function getRepositories(flags, filter) {
-	// Get all repositories
-	const { points, repositories } = await getRepos(generateQuery, flags, filter);
+  // Get all repositories
+  const { points, repositories } = await getRepos(generateQuery, flags, filter);
+  console.log(JSON.stringify(repositories, null, 2));
 
-	if (!flags.sort) {
-		repositories.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-	}
+  if (!flags.sort) {
+    repositories.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  }
 
-	return { points, repositories };
+  return { points, repositories };
 };
